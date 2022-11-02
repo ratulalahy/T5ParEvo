@@ -1,4 +1,4 @@
-config_scifact' : 
+config_scifact : 
   loc_target_model: ../../scifact/model/label_roberta_large_fever_scifact
   loc_rational_model: ../../scifact/model/rationale_roberta_large_fever_scifact
   loc_gold_ds_corpus : ../../scifact/data/corpus.jsonl
