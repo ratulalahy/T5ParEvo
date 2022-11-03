@@ -1,9 +1,0 @@
-target_dataset:
-  base_dir: ???
-  loc_target_dataset_corpus: ???
-  loc_target_dataset_train: ???
-  loc_target_dataset_dev: ???
-target_model:
-  loc_base_dir: ???
-  loc_label_model: ???
-  loc_rationale_model: ???
