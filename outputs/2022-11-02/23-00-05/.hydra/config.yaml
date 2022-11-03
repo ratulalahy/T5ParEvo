@@ -1,0 +1,9 @@
+target_dataset:
+  base_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo
+  loc_target_dataset_corpus: ???
+  loc_target_dataset_train: ???
+  loc_target_dataset_dev: ???
+target_model:
+  loc_base_dir: ???
+  loc_label_model: ???
+  loc_rationale_model: Some stupid name

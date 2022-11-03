@@ -1,7 +1,8 @@
-config_scifact : 
-  loc_target_model: ../../scifact/model/label_roberta_large_fever_scifact
-  loc_rational_model: ../../scifact/model/rationale_roberta_large_fever_scifact
-  loc_gold_ds_corpus : ../../scifact/data/corpus.jsonl
-  loc_gold_ds_train : ../../scifact/data/claims_train.jsonl
-  loc_gold_ds_dev : ../../scifact/data/claims_dev.jsonl
-  loc_target_dataset: ../../scifact/data/
+defaults:
+  - base_config
+  - target_model: verisci
+  - target_dataset: scifact_covid
+  
+  - _self_
+
+debug: true

@@ -1,0 +1,9 @@
+target_dataset:
+  base_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data
+  loc_target_dataset_corpus: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data/corpus.jsonl
+  loc_target_dataset_train: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data/claims_train.jsonl
+  loc_target_dataset_dev: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data/claims_dev.jsonl
+target_model:
+  base_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/model
+  loc_label_model: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/model/label_roberta_large_fever_scifact
+  loc_rationale_model: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/model/rationale_roberta_large_fever_scifact

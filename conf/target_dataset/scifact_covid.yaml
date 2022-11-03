@@ -1,0 +1,7 @@
+
+defaults:
+  - scifact_covid
+loc_dir_base: ${hydra:runtime.cwd}
+loc_gold_ds_corpus : ${loc_dir_base}/../../scifact/data/corpus.jsonl
+loc_gold_ds_train : ${loc_dir_base}/../../scifact/data/claims_train.jsonl
+loc_gold_ds_dev : ${loc_dir_base}/../../scifact/data/claims_dev.jsonl
