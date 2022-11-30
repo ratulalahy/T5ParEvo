@@ -1,3 +1,4 @@
+import abc
 import os
 from dataclasses import dataclass
 
@@ -38,7 +39,7 @@ class ScifactTargetDataset(TargetDataset):
 
 
 @dataclass 
-class TargetModel: 
+class TargetModel(abc.ABC): 
     """
     Parent dataclass for the location of target mode (the model to attack).
     Inherit this class to show the location of target model.
@@ -66,7 +67,38 @@ class ScifactTargetModel(TargetModel):
     loc_label_model: str = f'{base_dir}/label_roberta_large_fever_scifact'
     loc_rationale_model: str = f'{base_dir}/rationale_roberta_large_fever_scifact'
     
+    
+
+@dataclass
+class ParaphrasingModel:
+    model_name: str # keeping it for the sake of experiment tracking!
+    tokenizer_name: str
+    model_url_or_path: str
+
+@dataclass    
+class T5TunedParaphrasingModel(ParaphrasingModel):
+    model_name: str = 'finetuned_paws_abstracts'
+    tokenizer_name: str = 'Vamsi/T5_Paraphrase_Paws'
+    model_url_or_path: str = f'{os.getcwd()}/models/paraphraser/t5_paws_masked_claim_abstract_paws_3_epoch_2/model_3_epochs/'
+    
+@dataclass
+class T5GenParams:
+    max_length:int = 512
+    do_sample: bool= True
+    top_k: int=  50
+    top_p: float= 0.99
+    repetition_penalty:float = 3.5
+    early_stopping:bool = True
+    num_return_sequences:int = 5    
+
+
+    
+    
 @dataclass
 class SciFactT5Config:
     target_dataset: TargetDataset = ScifactTargetDataset()
     target_model: TargetModel = ScifactTargetModel()
+    paraphrasing_model: ParaphrasingModel = T5TunedParaphrasingModel()
+    t5_generation_param: T5GenParams = T5GenParams()
+
+

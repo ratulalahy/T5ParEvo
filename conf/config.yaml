@@ -2,6 +2,7 @@ defaults:
   - base_config
   - target_model: verisci
   - target_dataset: scifact_covid
+  - paraphrasing_model: t5_paws_tuned
   
   - _self_
 

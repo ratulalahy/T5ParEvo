@@ -1,0 +1,21 @@
+target_dataset:
+  base_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data
+  loc_target_dataset_corpus: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data/corpus.jsonl
+  loc_target_dataset_train: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data/claims_train.jsonl
+  loc_target_dataset_dev: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/scifact/data/claims_dev.jsonl
+target_model:
+  base_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/model
+  loc_label_model: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/model/label_roberta_large_fever_scifact
+  loc_rationale_model: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/model/rationale_roberta_large_fever_scifact
+paraphrasing_model:
+  model_name: finetuned_paws_abstracts
+  tokenizer_name: Vamsi/T5_Paraphrase_Paws
+  model_url_or_path: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/models/paraphraser/t5_paws_masked_claim_abstract_paws_3_epoch_2/model_3_epochs/
+t5_generation_param:
+  max_length: 512
+  do_sample: true
+  top_k: 50
+  top_p: 0.99
+  repetition_penalty: 3.5
+  early_stopping: true
+  num_return_sequences: 5
