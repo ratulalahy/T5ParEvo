@@ -2,8 +2,7 @@ from enum import Enum
 import json
 import copy
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
-from typing import Optional
+from typing import Dict, List, Tuple, Optional
 from abc import ABC, abstractmethod
 
 class Label_enm(Enum):
