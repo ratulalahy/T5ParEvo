@@ -1,7 +1,8 @@
 import abc
+from enum import Enum
 import os
 from dataclasses import dataclass
-
+from definitions import PROJECT_VARS
 from hydra.utils import get_original_cwd, to_absolute_path
 from omegaconf import MISSING
 
@@ -32,11 +33,11 @@ class ScifactTargetDataset(TargetDataset):
     Returns:
         _type_: _description_
     """
-    base_dir:str = f'{os.getcwd()}/target_system/scifact/data'
+    base_dir:str = f'{PROJECT_VARS.ROOT_DIR}/target_system/scifact/data'
     loc_target_dataset_corpus: str  = f'{base_dir}/corpus.jsonl'
     loc_target_dataset_train: str  = f'{base_dir}/claims_train.jsonl'
     loc_target_dataset_dev: str  = f'{base_dir}/claims_dev.jsonl'
-
+    
 
 @dataclass 
 class TargetModel(abc.ABC): 
@@ -63,7 +64,7 @@ class ScifactTargetModel(TargetModel):
     Returns:
         _type_: _description_
     """
-    base_dir: str =f'{os.getcwd()}/target_system/model'
+    base_dir: str =f'{PROJECT_VARS.ROOT_DIR}/target_system/model'
     loc_label_model: str = f'{base_dir}/label_roberta_large_fever_scifact'
     loc_rationale_model: str = f'{base_dir}/rationale_roberta_large_fever_scifact'
     
@@ -79,7 +80,8 @@ class ParaphrasingModel:
 class T5TunedParaphrasingModel(ParaphrasingModel):
     model_name: str = 'finetuned_paws_abstracts'
     tokenizer_name: str = 'Vamsi/T5_Paraphrase_Paws'
-    model_url_or_path: str = f'{os.getcwd()}/models/paraphraser/t5_paws_masked_claim_abstract_paws_3_epoch_2/model_3_epochs/'
+    model_url_or_path: str = f'{PROJECT_VARS.ROOT_DIR}/models/paraphraser/t5_paws_masked_claim_abstract_paws_3_epoch_2/model_3_epochs/'
+       
     
 @dataclass
 class T5GenParams:
@@ -91,14 +93,39 @@ class T5GenParams:
     early_stopping:bool = True
     num_return_sequences:int = 5    
 
+@dataclass 
+class EntailmentModel:
+    model_repo : str = 'pytorch/fairseq'
+    model_name : str = 'roberta.large.mnli'
 
+@dataclass(frozen=True)
+class FineTuningDatasetDirection(Enum):
+    ORG_REF_TO_GEN_SUP = 0
+    ORG_SUP_TO_GEN_REF = 1 
+
+@dataclass(frozen=True)
+class NliLabels(Enum):
+    CONTRADICTION = 0
+    NEUTRAL = 1
+    ENTAILMENT = 2
+ 
+@dataclass(frozen=True)    
+class AttackReesult(Enum):
+    REFUTE = 0
+    SUPPORT = 1
+    NOT_ENOUGH_INFO = 2
     
     
+@dataclass
+class SettingsFineTuning:
+    paraphrase_ft_train_split: float = 0.2
+    paraphrase_ft_dataset_direction: FineTuningDatasetDirection = FineTuningDatasetDirection.ORG_REF_TO_GEN_SUP
+    num_of_epoch_req_ft : int = 10
+
 @dataclass
 class SciFactT5Config:
     target_dataset: TargetDataset = ScifactTargetDataset()
     target_model: TargetModel = ScifactTargetModel()
     paraphrasing_model: ParaphrasingModel = T5TunedParaphrasingModel()
     t5_generation_param: T5GenParams = T5GenParams()
-
-
+    fine_tune_settings: SettingsFineTuning = SettingsFineTuning()

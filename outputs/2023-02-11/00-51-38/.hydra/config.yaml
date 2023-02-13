@@ -19,3 +19,7 @@ t5_generation_param:
   repetition_penalty: 3.5
   early_stopping: true
   num_return_sequences: 5
+fine_tune_settings:
+  paraphrase_ft_train_split: 0.2
+  paraphrase_ft_dataset_direction: {}
+  num_of_epoch_req_ft: 10

@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 
 import hydra
 from hydra.core.config_store import ConfigStore
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 
 from config import SciFactT5Config
 

@@ -143,7 +143,7 @@ hydra:
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/outputs/2022-11-03/02-05-24
+    output_dir: /home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/outputs/2023-02-11/00-51-38
     choices:
       hydra/env: default
       hydra/callbacks: null
