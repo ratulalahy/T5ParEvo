@@ -43,11 +43,9 @@ class Rationale:
     
 @dataclass
 class ClaimRationale:
-    id: str
+    id_claim: str
     claim: Claim
     rationales : List[Dict[Rationale, Label]]
-#    source: Optional[str] = ""
-    
 
     
 @dataclass
