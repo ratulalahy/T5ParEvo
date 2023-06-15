@@ -5,27 +5,23 @@ import argparse
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Dict, List
+import json
+#
+module_path = os.path.abspath(os.path.join('...'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 
-# from model import MultiVerSModel
-# from multivers.model_r import MultiVerSModel
-# from multivers.model_r import MultiVerSModel
-# from data import get_dataloader
-# from T5ParEvo.src.data.data import DataLoaderGenerator, get_dataloader
-# import util
-# from multivers import util
-# sys.path.append(os.path.abspath('/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers'))
-# sys.path.append(os.path.abspath('/home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo'))
-# module_path = os.path.abspath(os.path.join('..'))
-# if module_path not in sys.path:
-#     sys.path.append(module_path)
+from config import SciFactT5Config
+import definitions
+sys.path.append(os.path.dirname(definitions.PROJECT_VARS.ROOT_DIR))
+print(definitions.PROJECT_VARS.ROOT_DIR)
+#
 
-# from config import SciFactT5Config
-# import definitions
-from ...src.data.data import Claim, ClaimPredictions
+from T5ParEvo.src.data.data import Claim, ClaimPredictions
 from multivers import util
-from multivers.data_r import DataLoaderGenerator, get_dataloader
+from multivers.data_r import ClaimDataLoaderGenerator, get_dataloader, DataLoaderGenerator
 from multivers.model_r import MultiVerSModel
-# from ..src.data.data import Claim, ClaimPredictions
+
 
 
 @dataclass
@@ -42,7 +38,7 @@ class PredictionParams:
     debug: bool = False
 
 class ModelPredictor:
-    def __init__(self, params: PredictionParams, data_loader_generator: DataLoaderGenerator, claim: Claim):
+    def __init__(self, params: PredictionParams, data_loader_generator: ClaimDataLoaderGenerator, claim: Claim):
         self.params = params
         self.model = self._setup_model()
         self.hparams = self._get_hparams()
@@ -94,6 +90,52 @@ class ModelPredictor:
             to_append = {"id": k, "evidence": v}
             res.append(to_append)
         return res
+    
+    @staticmethod
+    def format_prediction_claims(params: PredictionParams, predictions_all: List) -> List[Dict[str, Any]]:
+        # claims = util.load_jsonl(params.input_file)
+        claim_ids = [x["claim_id"] for x in predictions_all]
+        # assert len(claim_ids) == len(set(claim_ids))
+        formatted = {claim: {} for claim in claim_ids}
+        # formatted = {}
+        for prediction in predictions_all:
+            if prediction["predicted_label"] == "NEI":
+                continue
+            formatted_entry = {
+                prediction["abstract_id"]: {
+                    "label": prediction["predicted_label"],
+                    "sentences": prediction["predicted_rationale"],
+                }
+            }
+            formatted[prediction["claim_id"]].update(formatted_entry)
+        res = []
+        for k, v in formatted.items():
+            to_append = {"id": k, "evidence": v}
+            res.append(to_append)
+        return res
+    
+    @staticmethod
+    def format_predictions(params: PredictionParams, predictions_all: List) -> List[Dict[str, Any]]:
+        claims = util.load_jsonl(params.input_file)
+        claim_ids = [x["id"] for x in claims]
+        assert len(claim_ids) == len(set(claim_ids))
+        formatted = {claim: {} for claim in claim_ids}
+        for prediction in predictions_all:
+            if prediction["predicted_label"] == "NEI":
+                continue
+            formatted_entry = {
+                prediction["abstract_id"]: {
+                    "label": prediction["predicted_label"],
+                    "sentences": prediction["predicted_rationale"],
+                }
+            }
+            formatted[prediction["claim_id"]].update(formatted_entry)
+        res = []
+        for k, v in formatted.items():
+            to_append = {"id": k, "evidence": v}
+            res.append(to_append)
+        return res
+        
     @staticmethod
     def format_prediction_by_claim(params: PredictionParams, predictions_all: List, claim_id: int) -> List[Dict[str, Any]]:
         # claims = util.load_jsonl(params.input_file)
@@ -122,17 +164,17 @@ class ModelPredictor:
             outname = Path(self.params.output_file)
         
         predictions = self.get_predictions()
-        formatted = self.format_prediction_by_claim(self.params, predictions, self.claim.id)
+        formatted = self.format_prediction_claims(self.params, predictions)
         return formatted
         # util.write_jsonl(formatted, outname)
         
 
 from verisci.evaluate.lib.data import GoldDataset
-def main():
+def main_single_claim():
 
     params = PredictionParams(
         
-        checkpoint_path="models/target_model/multivers/scifact.ckpt",
+        checkpoint_path="checkpoints/scifact.ckpt",
         output_file= None,#"prediction/pred_opt_scifact.jsonl",
         batch_size=1,
         device=0,
@@ -141,7 +183,7 @@ def main():
         force_rationale=False,
         debug=False,
     )
-    corpus_file = "data/scifact_raw/corpus.jsonl"
+    corpus_file = "data/scifact/corpus.jsonl"
     # gold_ds = GoldDataset(corpus_file=corpus_file, data_file = 'data/scifact/claims_test_retrived.jsonl')
         
     
@@ -149,7 +191,7 @@ def main():
                  evidence = {}, cited_docs= [641786, 6421792, 9478135, 27306942, 667451, 38745690, 28614776, 1982286, 8385277, 3462075], 
                  release = None)
 
-    dataloader_generator = DataLoaderGenerator(params, claim, corpus_file)
+    dataloader_generator = ClaimDataLoaderGenerator(params, claim, corpus_file)
     dataloader = dataloader_generator.get_dataloader_by_single_claim()
     predictor = ModelPredictor(params, dataloader, claim)
     prediction_formatted = predictor.run()
@@ -159,7 +201,42 @@ def main():
     claim_predictions.pretty_print_simple()
     print(claim_predictions)
 
-if __name__ == "__main__":
 
-    main()
+def main_single_list():
+
+    params = PredictionParams(
+        
+        checkpoint_path="/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/checkpoints/scifact.ckpt",
+        output_file= None,#"prediction/pred_opt_scifact.jsonl",
+        batch_size=2,
+        device=0,
+        num_workers=4,
+        no_nei=False,
+        force_rationale=False,
+        debug=False,
+    )
+    corpus_file = "/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/data/scifact/corpus.jsonl"
+    # gold_ds = GoldDataset(corpus_file=corpus_file, data_file = 'data/scifact/claims_test_retrived.jsonl')
+        
     
+    claims = []
+    claims_path = '/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/data/scifact/claims_test_retrived.jsonl'
+    with open(claims_path, 'r') as f:
+        for line in f:
+            data = json.loads(line)
+            claim = Claim(id = data['id'], claim = data['claim'], cited_docs = data['doc_ids'], evidence = {},release = None)
+            claims.append(claim)
+
+    dataloader_generator = DataLoaderGenerator(params, claims[:10], corpus_file)
+    dataloader = dataloader_generator.get_dataloader_by_claims()
+    predictor = ModelPredictor(params, dataloader, claim)
+    prediction_formatted = predictor.run()
+    
+    prediction = prediction_formatted[0]  # assuming there's only one prediction
+    claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+    claim_predictions.pretty_print_simple()
+    print(claim_predictions)
+
+if __name__ == "__main__":
+    # main_single_claim()
+    main_single_list()
