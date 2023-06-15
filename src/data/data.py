@@ -7,7 +7,7 @@ For attack handling other classes and functions are implemented in this file.
 from enum import Enum
 import json
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pickle
 from typing import Dict, List, Tuple
 
@@ -133,10 +133,10 @@ class GoldDataset:
             entry = copy.deepcopy(this_example)
             entry["release"] = self
             entry["cited_docs"] = [
-                self.corpus.get_document(doc) for doc in entry["cited_doc_ids"]
+                self.corpus.get_document(doc) for doc in entry["doc_ids"]
             ]
-            assert len(entry["cited_docs"]) == len(entry["cited_doc_ids"])
-            del entry["cited_doc_ids"]
+            assert len(entry["cited_docs"]) == len(entry["doc_ids"])
+            del entry["doc_ids"]
             res.append(Claim(**entry))
 
         res = sorted(res, key=lambda x: x.id)
@@ -165,9 +165,9 @@ class Claim:
 
     id: int
     claim: str
-    evidence: Dict[int, EvidenceAbstract]
+    evidence: Dict[int, EvidenceAbstract] 
     cited_docs: List[Document]
-    release: GoldDataset
+    release: GoldDataset 
 
     def __post_init__(self):
         self.evidence = self._format_evidence(self.evidence)
@@ -219,6 +219,12 @@ class Claim:
                 for entry in kept:
                     print(f"\t- {entry}", file=file)
 
+    @classmethod
+    def get_claim_by_id(cls, claims: List['Claim'], claim_id: int) -> 'Claim':
+        for claim in claims:
+            if claim.id == claim_id:
+                return claim
+        return None
 
 ####################
 

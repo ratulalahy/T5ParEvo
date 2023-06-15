@@ -33,10 +33,12 @@ class ScifactTargetDataset(TargetDataset):
     Returns:
         _type_: _description_
     """
-    base_dir:str = f'{PROJECT_VARS.ROOT_DIR}/target_system/scifact/data'
+    # base_dir:str = f'{PROJECT_VARS.ROOT_DIR}/target_system/scifact/data' # This is directory of for the scifact dataset
+    base_dir:str = f'{PROJECT_VARS.ROOT_DIR}/target_system/multivers/data' # This is directory of for the scifact dataset
     loc_target_dataset_corpus: str  = f'{base_dir}/corpus.jsonl'
-    loc_target_dataset_train: str  = f'{base_dir}/claims_train.jsonl'
+    loc_target_dataset_train: str  = f'{base_dir}/claims_train_cited.jsonl'
     loc_target_dataset_dev: str  = f'{base_dir}/claims_dev.jsonl'
+    loc_target_dataset_test: str  = f'{base_dir}/claims_test_retrieved.jsonl'
     
 
 @dataclass 
