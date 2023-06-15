@@ -380,3 +380,4 @@ class ParaphrasedClaim:
     def get_difference(self):
         # calculating the difference in prediction results.
         raise NotImplementedError()
+
