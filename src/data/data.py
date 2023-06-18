@@ -10,6 +10,7 @@ import copy
 from dataclasses import dataclass, field
 import pickle
 from typing import Dict, List, Tuple
+from T5ParEvo.src.linguistic.ner_abbr import Abbreviation, NEREntity
 
 ####################
 
@@ -168,6 +169,8 @@ class Claim:
     evidence: Dict[int, EvidenceAbstract] 
     cited_docs: List[Document]
     release: GoldDataset 
+    # abbreviations : List[Abbreviation] = None
+    ner_entities : List[NEREntity] = None
 
     def __post_init__(self):
         self.evidence = self._format_evidence(self.evidence)
@@ -225,7 +228,23 @@ class Claim:
             if claim.id == claim_id:
                 return claim
         return None
-
+    
+    @classmethod
+    def get_claim_by_text(cls, claims: List['Claim'], claim_text: str) -> 'Claim':
+        for claim in claims:
+            if claim.claim == claim_text:
+                return claim
+        return None
+    
+    @classmethod
+    def get_unique_claims(cls, claims: List['Claim'])-> 'Claim':
+        unique_claims = set()
+        unique_claim_objects = []
+        for claim in claims:
+            if claim.claim not in unique_claims:
+                unique_claims.add(claim.claim)
+                unique_claim_objects.append(claim)
+        return unique_claim_objects
 ####################
 
 # Predicted dataset.
@@ -375,6 +394,30 @@ class ClaimPredictions:
             predictions[abstract_id] = predicted_abstract
 
         return cls(claim_id, predictions, gold_claim)        
+    
+    @classmethod
+    def get_count_support_refute(cls, claim_prediction) -> Tuple[int, int, int]:
+        """_summary_
+
+        Args:
+            claim_prediction (ClaimPredictions): _description_
+
+        Returns:
+            Tuple[int, int, int]: _description_
+        """
+        count_support = 0
+        count_refute = 0
+        count_nei = 0
+        for cur_pred_key in claim_prediction.predictions.keys():
+            pred_label = claim_prediction.predictions[cur_pred_key].label
+            if pred_label == Label.SUPPORTS:
+                count_support += 1
+            elif pred_label == Label.REFUTES:
+                count_refute += 1
+            elif pred_label == Label.NEI:
+                count_nei += 1
+        return count_support, count_refute, count_nei    
+    
 
 @dataclass
 class ParaphrasedClaim:
