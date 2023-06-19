@@ -70,7 +70,24 @@ class ScifactTargetModel(TargetModel):
     loc_label_model: str = f'{base_dir}/label_roberta_large_fever_scifact'
     loc_rationale_model: str = f'{base_dir}/rationale_roberta_large_fever_scifact'
     
-    
+
+@dataclass
+class MultiversTargetModel(TargetModel):
+    """
+    _summary_
+
+    Args:
+        LocTargetDataset (_type_): _description_
+
+    Raises:
+        TypeError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    base_dir: str =f'{PROJECT_VARS.ROOT_DIR}/target_system/multivers/model'
+    loc_label_model: str = f'{base_dir}/scifact.ckpt'
+    loc_rationale_model: str = f'{base_dir}/scifact.ckpt'    
 
 @dataclass
 class ParaphrasingModel:
