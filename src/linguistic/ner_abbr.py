@@ -3,7 +3,8 @@ import spacy
 from scispacy.abbreviation import AbbreviationDetector
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple, Union
-from T5ParEvo.src.data.data import Claim, Label
+# from T5ParEvo.src.data.data import Claim, Label
+from ..data.data import Claim, Label
 
 @dataclass
 class Abbreviation:

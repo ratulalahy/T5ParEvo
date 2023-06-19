@@ -10,7 +10,8 @@ import copy
 from dataclasses import dataclass, field
 import pickle
 from typing import Dict, List, Tuple
-from T5ParEvo.src.linguistic.ner_abbr import Abbreviation, NEREntity
+# from T5ParEvo.src.linguistic.ner_abbr import Abbreviation, NEREntity
+# from ..linguistic.ner_abbr import Abbreviation, NEREntity
 
 ####################
 
@@ -170,7 +171,7 @@ class Claim:
     cited_docs: List[Document]
     release: GoldDataset 
     # abbreviations : List[Abbreviation] = None
-    ner_entities : List[NEREntity] = None
+    # ner_entities : List[NEREntity] = None
 
     def __post_init__(self):
         self.evidence = self._format_evidence(self.evidence)
