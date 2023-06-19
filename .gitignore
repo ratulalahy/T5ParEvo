@@ -82,6 +82,7 @@ target/
 
 # exclude data from source control by default
 /data/
+/models/
 
 # Mac OS-specific storage files
 .DS_Store
@@ -99,3 +100,10 @@ dst-env
 # Large model files
 *.zip
 *.bin
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.pkl
+*.pickle
+*.ckpt
