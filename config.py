@@ -122,11 +122,6 @@ class FineTuningDatasetDirection(Enum):
     ORG_REF_TO_GEN_SUP = 0
     ORG_SUP_TO_GEN_REF = 1 
 
-@dataclass(frozen=True)
-class NliLabels(Enum):
-    CONTRADICTION = 0
-    NEUTRAL = 1
-    ENTAILMENT = 2
  
 @dataclass(frozen=True)    
 class AttackReesult(Enum):

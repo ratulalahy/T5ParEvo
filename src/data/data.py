@@ -420,12 +420,20 @@ class ClaimPredictions:
         return count_support, count_refute, count_nei    
     
 
+from ..linguistic.ner_abbr import Abbreviation, NEREntity
+from ..linguistic.entailment import NliLabels
+from conf import AttackReesult
 @dataclass
 class ParaphrasedClaim:
-    original_claim: Claim
     paraphrased_claim: Claim
-    original_prediction: ClaimPredictions
+    original_claim: Claim
     paraphrased_prediction: ClaimPredictions
+    original_prediction: ClaimPredictions
+    original_claim_ners: List[NEREntity] = None
+    original_claim_abbrs: List[Abbreviation] = None
+    nli_label: NliLabels = None
+    attack_result: AttackReesult = None
+    
 
     def get_difference(self):
         # calculating the difference in prediction results.

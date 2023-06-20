@@ -16,7 +16,7 @@ import definitions
 sys.path.append(os.path.dirname(definitions.PROJECT_VARS.ROOT_DIR))
 print(definitions.PROJECT_VARS.ROOT_DIR)
 #
-
+# from ...data.data import Claim, ClaimPredictions
 from T5ParEvo.src.data.data import Claim, ClaimPredictions
 from multivers import util
 from multivers.data_r import ClaimDataLoaderGenerator, get_dataloader, DataLoaderGenerator
