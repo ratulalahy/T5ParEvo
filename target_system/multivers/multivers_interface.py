@@ -6,6 +6,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Dict, List
 import json
+
 #
 module_path = os.path.abspath(os.path.join('...'))
 if module_path not in sys.path:

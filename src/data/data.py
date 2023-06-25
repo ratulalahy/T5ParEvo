@@ -10,6 +10,8 @@ import copy
 from dataclasses import dataclass, field
 import pickle
 from typing import Dict, List, Tuple
+from config import AttackReesult
+from collections import OrderedDict
 # from T5ParEvo.src.linguistic.ner_abbr import Abbreviation, NEREntity
 # from ..linguistic.ner_abbr import Abbreviation, NEREntity
 
@@ -246,6 +248,22 @@ class Claim:
                 unique_claims.add(claim.claim)
                 unique_claim_objects.append(claim)
         return unique_claim_objects
+    
+    @classmethod
+    def load_claims_from_file(cls, file_path: str) -> List['Claim']:
+        claims = []
+        with open(file_path, 'r') as f:
+            for line in f:
+                data = json.loads(line, object_pairs_hook=OrderedDict)
+                claim = cls(
+                    id=data['id'],
+                    claim=data['claim'],
+                    cited_docs=data['doc_ids'],
+                    evidence={},
+                    release=None
+                )
+                claims.append(claim)
+        return claims    
 ####################
 
 # Predicted dataset.
@@ -421,8 +439,8 @@ class ClaimPredictions:
     
 
 from ..linguistic.ner_abbr import Abbreviation, NEREntity
-from ..linguistic.entailment import NliLabels
-from conf import AttackReesult
+# from ..linguistic.entailment import NliLabels
+# from conf import AttackReesult
 @dataclass
 class ParaphrasedClaim:
     paraphrased_claim: Claim
@@ -431,7 +449,7 @@ class ParaphrasedClaim:
     original_prediction: ClaimPredictions
     original_claim_ners: List[NEREntity] = None
     original_claim_abbrs: List[Abbreviation] = None
-    nli_label: NliLabels = None
+    nli_label: 'NliLabels' = None
     attack_result: AttackReesult = None
     
 
