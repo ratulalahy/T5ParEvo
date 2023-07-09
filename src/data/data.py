@@ -443,10 +443,10 @@ from ..linguistic.ner_abbr import Abbreviation, NEREntity
 # from conf import AttackReesult
 @dataclass
 class ParaphrasedClaim:
-    paraphrased_claim: Claim
-    original_claim: Claim
-    paraphrased_prediction: ClaimPredictions
-    original_prediction: ClaimPredictions
+    paraphrased_claim: Claim = None
+    original_claim: Claim = None
+    paraphrased_prediction: ClaimPredictions = None
+    original_prediction: ClaimPredictions = None
     original_claim_ners: List[NEREntity] = None
     original_claim_abbrs: List[Abbreviation] = None
     nli_label: 'NliLabels' = None
