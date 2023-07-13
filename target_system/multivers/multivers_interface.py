@@ -8,9 +8,9 @@ from typing import Any, Dict, List
 import json
 
 #
-module_path = os.path.abspath(os.path.join('...'))
-if module_path not in sys.path:
-    sys.path.append(module_path)
+# module_path = os.path.abspath(os.path.join('...'))
+# if module_path not in sys.path:
+#     sys.path.append(module_path)
 
 from config import SciFactT5Config
 import definitions
@@ -22,28 +22,21 @@ from T5ParEvo.src.data.data import Claim, ClaimPredictions
 from multivers import util
 from multivers.data_r import ClaimDataLoaderGenerator, get_dataloader, DataLoaderGenerator
 from multivers.model_r import MultiVerSModel
+from T5ParEvo.src.models.predict_model import ModelPredictor, PredictionParams
 
 
 
-@dataclass
-class PredictionParams:
-    checkpoint_path: str
-    # claim: Claim
-    # corpus_file: str
-    output_file: str
-    batch_size: int = 1
-    device: int = 0
-    num_workers: int = 4
-    no_nei: bool = False
-    force_rationale: bool = False
-    debug: bool = False
 
-class ModelPredictor:
-    def __init__(self, params: PredictionParams, data_loader_generator: ClaimDataLoaderGenerator):
-        self.params = params
-        self.model = self._setup_model()
-        self.hparams = self._get_hparams()
-        self.dataloader = data_loader_generator
+
+class ModelPredictorMultivers(ModelPredictor):
+    def __init__(self, params: PredictionParams, claim: Claim):
+        super().__init__(params)
+        # self.params = params
+        # self.model = self._setup_model()
+        # self.hparams = self._get_hparams()
+        self.claim = claim
+        self.corpus_file = params.corpus_file
+        self.dataloader = None
 
     def _setup_model(self) -> MultiVerSModel:
         model = MultiVerSModel.load_from_checkpoint(checkpoint_path=self.params.checkpoint_path)
@@ -167,76 +160,89 @@ class ModelPredictor:
         formatted = self.format_prediction_claims(self.params, predictions)
         return formatted
         # util.write_jsonl(formatted, outname)
-        
+
+
+    def predict(self) -> Any: #ClaimPredictions?
+        dataloader_generator = ClaimDataLoaderGenerator(self.params, self.claim, self.corpus_file)
+        self.dataloader = dataloader_generator.get_dataloader_by_single_claim()
+        prediction_formatted = self.run()
+        prediction = prediction_formatted[0]  # assuming there's only one prediction
+        claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, self.claim)
+        return claim_predictions
+
+
+
+class ModelPredictorMultiversList(ModelPredictor):
+    def __init__(self, params: PredictionParams, claims: List[Claim]):
+        super().__init__(params)
+        self.claims = claims
+        self.corpus_file = params.corpus_file
+        self.dataloader = None
+
+    def predict(self) -> List[ClaimPredictions]:
+        dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
+        self.dataloader = dataloader_generator.get_dataloader_by_claims()
+        prediction_formatted = self.run()
+        claim_predictions_list = []
+        for prediction in prediction_formatted:  # assuming there's only one prediction per claim
+            claim = next(claim for claim in self.claims if claim.id == prediction['id'])
+            claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+            claim_predictions_list.append(claim_predictions)
+        return claim_predictions_list
+
 
 from verisci.evaluate.lib.data import GoldDataset
 def main_single_claim():
-
     params = PredictionParams(
-        
-        checkpoint_path="checkpoints/scifact.ckpt",
-        output_file= None,#"prediction/pred_opt_scifact.jsonl",
+        checkpoint_path='/home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/models/target_model/multivers/scifact.ckpt',
         batch_size=1,
         device=0,
         num_workers=4,
         no_nei=False,
         force_rationale=False,
         debug=False,
+        corpus_file='/home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/target_system/multivers/data/corpus.jsonl'
     )
-    corpus_file = "data/scifact/corpus.jsonl"
-    # gold_ds = GoldDataset(corpus_file=corpus_file, data_file = 'data/scifact/claims_test_retrived.jsonl')
-        
-    
-    claim= Claim(id = 1093, claim =  "Somatic missense mutations in NT5C2 are not associated with relapse of acute lymphoblastic leukemia.", 
-                 evidence = {}, cited_docs= [641786, 6421792, 9478135, 27306942, 667451, 38745690, 28614776, 1982286, 8385277, 3462075], 
-                 release = None)
 
-    dataloader_generator = ClaimDataLoaderGenerator(params, claim, corpus_file)
-    dataloader = dataloader_generator.get_dataloader_by_single_claim()
-    predictor = ModelPredictor(params, dataloader, claim)
-    prediction_formatted = predictor.run()
-    
-    prediction = prediction_formatted[0]  # assuming there's only one prediction
-    claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+    claim = Claim(id=1093,
+                  claim="Somatic missense mutations in NT5C2 are not associated with relapse of acute lymphoblastic leukemia.",
+                  evidence={}, 
+                  cited_docs=[641786, 6421792, 9478135, 27306942, 667451, 38745690, 28614776, 1982286, 8385277, 3462075],
+                  release=None)
+
+    predictor = ModelPredictorMultivers(params, claim)
+    claim_predictions = predictor.predict()
     claim_predictions.pretty_print_simple()
     print(claim_predictions)
 
 
 def main_single_list():
-
     params = PredictionParams(
-        
         checkpoint_path="/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/checkpoints/scifact.ckpt",
-        output_file= None,#"prediction/pred_opt_scifact.jsonl",
         batch_size=2,
         device=0,
         num_workers=4,
         no_nei=False,
         force_rationale=False,
         debug=False,
+        corpus_file="/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/data/scifact/corpus.jsonl"
     )
-    corpus_file = "/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/data/scifact/corpus.jsonl"
-    # gold_ds = GoldDataset(corpus_file=corpus_file, data_file = 'data/scifact/claims_test_retrived.jsonl')
-        
-    
-    claims = []
+
     claims_path = '/home/qudratealahyratu/research/nlp/fact_checking/my_work/multivers/data/scifact/claims_test_retrived.jsonl'
+    claims = []
     with open(claims_path, 'r') as f:
         for line in f:
             data = json.loads(line)
-            claim = Claim(id = data['id'], claim = data['claim'], cited_docs = data['doc_ids'], evidence = {},release = None)
+            claim = Claim(id=data['id'], claim=data['claim'], cited_docs=data['doc_ids'], evidence={}, release=None)
             claims.append(claim)
 
-    dataloader_generator = DataLoaderGenerator(params, claims[:10], corpus_file)
-    dataloader = dataloader_generator.get_dataloader_by_claims()
-    predictor = ModelPredictor(params, dataloader, claim)
-    prediction_formatted = predictor.run()
-    
-    prediction = prediction_formatted[0]  # assuming there's only one prediction
-    claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
-    claim_predictions.pretty_print_simple()
-    print(claim_predictions)
+    predictor = ModelPredictorMultiversList(params, claims[:10])
+    claim_predictions_list = predictor.predict()
+    for claim_predictions in claim_predictions_list:
+        claim_predictions.pretty_print_simple()
+        print(claim_predictions)
+
 
 if __name__ == "__main__":
-    # main_single_claim()
-    main_single_list()
+    main_single_claim()
+    # main_single_list()

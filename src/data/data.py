@@ -390,20 +390,6 @@ class ClaimPredictions:
         :param gold_claim: Gold Claim object. (Default: None)
         :return: ClaimPredictions object.
         """
-        # claim_id = prediction_formatted['id']
-        # predictions = {}
-
-        # for abstract_id, evidence in prediction_formatted['evidence'].items():
-        #     predicted_abstract = PredictedAbstract(
-        #         abstract_id,
-        #         Label[evidence['label']],
-        #         evidence['sentences']
-        #     )
-        #     predictions[abstract_id] = predicted_abstract
-        # return cls(claim_id, predictions, gold_claim)        
-    
-    
-    
         claim_id = prediction_formatted['id']
         predictions = {}
         for abstract_id, evidence in prediction_formatted['evidence'].items():
@@ -411,7 +397,6 @@ class ClaimPredictions:
             rationale = evidence['sentences']
             predicted_abstract = PredictedAbstract(abstract_id, label, rationale)
             predictions[abstract_id] = predicted_abstract
-
         return cls(claim_id, predictions, gold_claim)        
     
     @classmethod

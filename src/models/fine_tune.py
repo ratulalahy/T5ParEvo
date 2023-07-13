@@ -13,10 +13,14 @@ from transformers import (AdamW, T5ForConditionalGeneration, T5Tokenizer,
 # import ParaphraseDataset, FineTuneHyperParams
 from src.paraphrase.paraphrase_claim import ParaphraseDataset
 
+from pandas import DataFrame
+from torch import Tensor
+from torch.utils.data import Dataset
+from transformers import PreTrainedTokenizerBase
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers.base import LightningLoggerBase
-from typing import Dict
+from typing import Dict, List
 
 import logging
 
@@ -186,3 +190,64 @@ class T5FineTuner(pl.LightningModule):
     def val_dataloader(self) -> DataLoader:
         val_dataset = ParaphraseDataset(tokenizer=self.tokenizer, target_dataframe=self.hparams.df_val, max_len=self.hparams.max_len)
         return DataLoader(val_dataset, batch_size=self.hparams.eval_batch_size, num_workers=4)        
+    
+    
+
+
+@dataclass
+class DataFrameConfig:
+    source_column: str = "org_claim"
+    target_column: str = "gen_claim"
+    
+class ParaphraseDataset(Dataset):
+    def __init__(self, 
+                 tokenizer: PreTrainedTokenizerBase, 
+                 dataframe: DataFrame, 
+                 max_len: int = 512, 
+                 config: DataFrameConfig = DataFrameConfig()):
+        self.data = dataframe
+        self.max_len = max_len
+        self.tokenizer = tokenizer
+        self.config = config
+        self.inputs: List[Tensor] = []
+        self.targets: List[Tensor] = []
+
+        self._build()
+
+    def __len__(self) -> int:
+        return len(self.inputs)
+
+    def __getitem__(self, index: int) -> Dict[str, Tensor]:
+        source_ids = self.inputs[index]["input_ids"].squeeze()
+        target_ids = self.targets[index]["input_ids"].squeeze()
+
+        src_mask = self.inputs[index]["attention_mask"].squeeze()  # might need to squeeze
+        target_mask = self.targets[index]["attention_mask"].squeeze()  # might need to squeeze
+
+        return {"source_ids": source_ids, "source_mask": src_mask, "target_ids": target_ids, "target_mask": target_mask}
+
+    def _build(self) -> None:
+        for idx in range(len(self.data)):
+            input_, target = self.data.loc[idx, self.config.source_column], self.data.loc[idx, self.config.target_column]
+
+            input_ = "paraphrase: "+ input_ + ' </s>'
+            target = target + " </s>"
+
+            # tokenize inputs
+            tokenized_inputs = self.tokenizer.batch_encode_plus(
+                [input_], max_length=self.max_len, pad_to_max_length=True, return_tensors="pt"
+            )
+            # tokenize targets
+            tokenized_targets = self.tokenizer.batch_encode_plus(
+                [target], max_length=self.max_len, pad_to_max_length=True, return_tensors="pt"
+            )
+
+            self.inputs.append(tokenized_inputs)
+            self.targets.append(tokenized_targets)        
+            
+    def get_dataset(tokenizer: PreTrainedTokenizerBase, 
+                dataframe: DataFrame, 
+                max_len: int) -> 'ParaphraseDataset':
+        return ParaphraseDataset(tokenizer=tokenizer, dataframe=dataframe, max_len=max_len)
+            
+                
