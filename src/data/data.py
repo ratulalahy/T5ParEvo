@@ -9,9 +9,11 @@ import json
 import copy
 from dataclasses import dataclass, field
 import pickle
-from typing import Dict, List, Tuple
-from config import AttackReesult
+from typing import Dict, List, Tuple, Union, Optional, Any
+from config import AttackResult
 from collections import OrderedDict
+import re
+
 # from T5ParEvo.src.linguistic.ner_abbr import Abbreviation, NEREntity
 # from ..linguistic.ner_abbr import Abbreviation, NEREntity
 
@@ -423,22 +425,50 @@ class ClaimPredictions:
         return count_support, count_refute, count_nei    
     
 
-from ..linguistic.ner_abbr import Abbreviation, NEREntity
-# from ..linguistic.entailment import NliLabels
-# from conf import AttackReesult
-@dataclass
-class ParaphrasedClaim:
-    paraphrased_claim: Claim = None
-    original_claim: Claim = None
-    paraphrased_prediction: ClaimPredictions = None
-    original_prediction: ClaimPredictions = None
-    original_claim_ners: List[NEREntity] = None
-    original_claim_abbrs: List[Abbreviation] = None
-    nli_label: 'NliLabels' = None
-    attack_result: AttackReesult = None
-    
+# from ..linguistic.ner_abbr import Abbreviation, NEREntity
+# # from ..linguistic.entailment import NliLabels
+# # from conf import AttackReesult
+# @dataclass
+# class ParaphrasedClaim:
+#     paraphrased_claim: Claim = None
+#     original_claim: Claim = None
+#     paraphrased_prediction: ClaimPredictions = None
+#     original_prediction: ClaimPredictions = None
+#     original_claim_ners: List[NEREntity] = None
+#     original_claim_abbrs: List[Abbreviation] = None
+#     nli_label: 'NliLabels' = None
+#     attack_result: AttackResult = None
 
-    def get_difference(self):
-        # calculating the difference in prediction results.
-        raise NotImplementedError()
+
+#     def filter_and_replace_tech_term_paraphrased_claim(claim_paraphrased: str, original_entities: List[Any]) -> bool:
+#         """
+#         Function to check if a paraphrased sentence preserves all the technical terms or scientific terms that were in the original claim.
+        
+#         Args:
+#         claim_paraphrased (str): The paraphrased claim text.
+#         original_entities (List[Union[NEREntity, Abbreviation]]): The list of NER or Abbreviation instances. # Changed for this time being
+
+#         Returns:
+#         bool: Returns True if all terms are preserved, False otherwise.
+#         """
+#         for entity in original_entities:
+#             # Using regular expression to check for whole word match in the paraphrased claim
+#             if entity.__class__.__name__ == 'NEREntity':
+#                 term = entity.ner_text
+#             elif entity.__class__.__name__ == 'Abbreviation':
+#                 term = entity.abbr
+#             else:
+#                 raise ValueError(f"Unsupported entity type: {entity.__class__.__name__}")
+            
+#             # formatted search term for regex
+#             term_formatted = r'\b' + re.escape(term) + r'\b'
+            
+#             if not re.search(term_formatted, claim_paraphrased, re.IGNORECASE):
+#                 return False
+
+#         return True
+
+#     def get_difference(self):
+#         # calculating the difference in prediction results.
+#         raise NotImplementedError()
 

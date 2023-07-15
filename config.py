@@ -124,7 +124,7 @@ class FineTuningDatasetDirection(Enum):
 
  
 @dataclass(frozen=True)    
-class AttackReesult(Enum):
+class AttackResult(Enum):
     REFUTE = 0
     SUPPORT = 1
     NOT_ENOUGH_INFO = 2

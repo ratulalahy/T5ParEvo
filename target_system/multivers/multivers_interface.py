@@ -57,7 +57,8 @@ class ModelPredictorMultivers(ModelPredictor):
 
     def get_predictions(self) -> List:
         predictions_all = []
-        for batch in tqdm(self.dataloader):
+        # for batch in tqdm(self.dataloader):
+        for batch in self.dataloader:
             preds_batch = self.model.predict(batch, self.params.force_rationale)
             predictions_all.extend(preds_batch)
         return predictions_all
@@ -158,17 +159,28 @@ class ModelPredictorMultivers(ModelPredictor):
         
         predictions = self.get_predictions()
         formatted = self.format_prediction_claims(self.params, predictions)
+        # print('in run : ',formatted)
         return formatted
         # util.write_jsonl(formatted, outname)
 
 
-    def predict(self) -> Any: #ClaimPredictions?
+    # def predict(self) -> Any: #ClaimPredictions?
+    #     dataloader_generator = ClaimDataLoaderGenerator(self.params, self.claim, self.corpus_file)
+    #     self.dataloader = dataloader_generator.get_dataloader_by_single_claim()
+    #     prediction_formatted = self.run()
+    #     prediction = prediction_formatted[0]  # assuming there's only one prediction
+    #     claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, self.claim)
+    #     return claim_predictions
+    
+    def predict(self, claim: Claim) -> Any: #Accept a claim instance for prediction
+        self.claim = claim
         dataloader_generator = ClaimDataLoaderGenerator(self.params, self.claim, self.corpus_file)
         self.dataloader = dataloader_generator.get_dataloader_by_single_claim()
         prediction_formatted = self.run()
+        # print('in predict : ', prediction_formatted)
         prediction = prediction_formatted[0]  # assuming there's only one prediction
         claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, self.claim)
-        return claim_predictions
+        return claim_predictions    
 
 
 
@@ -179,7 +191,19 @@ class ModelPredictorMultiversList(ModelPredictor):
         self.corpus_file = params.corpus_file
         self.dataloader = None
 
-    def predict(self) -> List[ClaimPredictions]:
+    # def predict(self) -> List[ClaimPredictions]:
+    #     dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
+    #     self.dataloader = dataloader_generator.get_dataloader_by_claims()
+    #     prediction_formatted = self.run()
+    #     claim_predictions_list = []
+    #     for prediction in prediction_formatted:  # assuming there's only one prediction per claim
+    #         claim = next(claim for claim in self.claims if claim.id == prediction['id'])
+    #         claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+    #         claim_predictions_list.append(claim_predictions)
+    #     return claim_predictions_list
+    def predict(self, claims: List[Claim] = None) -> List[ClaimPredictions]:
+        if claims is not None:
+            self.claims = claims
         dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
         self.dataloader = dataloader_generator.get_dataloader_by_claims()
         prediction_formatted = self.run()
@@ -189,7 +213,6 @@ class ModelPredictorMultiversList(ModelPredictor):
             claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
             claim_predictions_list.append(claim_predictions)
         return claim_predictions_list
-
 
 from verisci.evaluate.lib.data import GoldDataset
 def main_single_claim():
