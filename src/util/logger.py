@@ -57,6 +57,27 @@ class NeptuneRunner:
             nep_run = None
         return nep_run
 
+
+
+# Define Logger
+class Logger:
+    def __init__(self, nep_run, log_configurator, local_log: bool = True, use_neptune: bool = True):
+        self.local_log = local_log
+        self.use_neptune = use_neptune
+        self.nep_run = nep_run
+        self.log_configurator = log_configurator
+
+        if self.local_log:
+            self.log_configurator.configure()
+
+    def log(self, key, value):
+        if self.nep_run and self.use_neptune:
+            self.nep_run[key].log(value)
+
+        if self.local_log:
+            logging.info(f'{key}: {value}')
+
+
 # Use LogConfigurator and NeptuneRunner
 if __name__ == "__main__":
 
@@ -70,3 +91,6 @@ if __name__ == "__main__":
                                    source_files=["**/*.ipynb", "*.yaml"])
     neptune_runner = NeptuneRunner(neptune_config)
     nep_run = neptune_runner.run()
+    
+    logger = Logger(nep_run, log_configurator)
+    logger.log("parameters/learning_rate", 0.001)

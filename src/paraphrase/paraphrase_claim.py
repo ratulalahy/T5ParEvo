@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import List
+from dataclasses import dataclass, asdict
 from typing import Dict, List, Any, Union
 import re
 
@@ -10,7 +12,35 @@ import torch
 from T5ParEvo.src.data.data import Claim, ClaimPredictions
 from T5ParEvo.src.paraphrase.paraphraser import Paraphraser
 from T5ParEvo.src.models.predict_model import ModelPredictor
-from T5ParEvo.src.linguistic.ner_abbr import NEREntity,Abbreviation
+from T5ParEvo.src.linguistic.ner_abbr import NEREntity, Abbreviation
+from T5ParEvo.src.util.logger import Logger
+
+from enum import Enum
+
+
+class MultiNLILabel(Enum):
+    CONTRADICTION = 0
+    NEUTRAL = 1
+    ENTAILMENT = 2
+
+
+class ClaimState(Enum):
+    SUPPORT_MAJORITY = "Support Majority"
+    REFUTE_MAJORITY = "Refute Majority"
+    NOT_ENOUGH_INFO = "Not Enough Information"
+    TIE = "Majority Tie"
+    EMPTY = "Empty Prediction Result"
+
+
+class AttackStatus(Enum):
+    SUCCESSFUL = "Successful Attack"
+    UNSUCCESSFUL = "Unsuccessful Attack"
+
+
+class TrainingMode(Enum):
+    SUPPORT_MAJORITY = "support_majority"
+    REFUTE_MAJORITY = "refute_majority"
+
 
 @dataclass
 class ParaphrasedClaim:
@@ -22,42 +52,26 @@ class ParaphrasedClaim:
     is_ners_preserved: bool = False
     # is_abbrs_preserved: bool = False
     nli_label: bool = False
+    original_claim_state: ClaimState = ClaimState.EMPTY  # Initialize with Empty
+    paraphrased_claim_state: ClaimState = ClaimState.EMPTY  # Initialize with Empty
+
     attack_result: 'ParaphrasedAttackResult' = None
 
+    def set_claim_state(self, original_claim_state: ClaimState, paraphrased_claim_state: ClaimState):
+        self.original_claim_state = original_claim_state
+        self.paraphrased_claim_state = paraphrased_claim_state
 
     def get_difference(self):
-        # This is a placeholder. You need to replace this with your own logic for
+        # TODO
         # calculating the difference in prediction results.
         return self.original_prediction.predictions != self.paraphrased_prediction.predictions
 
 
-# class ParaphrasedAttack:
-#     def __init__(self, paraphrase_model: Paraphraser, prediction_model : ModelPredictor):
-#         self.paraphrase_model = paraphrase_model
-#         self.prediction_model = prediction_model
-
-#     def attack(self, iteration : int,  original_claim: Claim, original_prediction: ClaimPredictions):
-#         paraphrased_texts = self.paraphrase_model.paraphrase(original_claim.claim)
-#         paraphrased_claims = []
-#         for paraphrased_text in paraphrased_texts:
-#             paraphrased_claim = Claim(original_claim.id, paraphrased_text, original_claim.evidence,
-#                                     original_claim.cited_docs, original_claim.release)
-#             paraphrased_prediction = self.prediction_model.predict(paraphrased_claim)
-#             print(paraphrased_prediction)
-#             paraphrased_claims.append(ParaphrasedClaim(iteration, original_claim, paraphrased_claim, original_prediction, paraphrased_prediction))
-#         return paraphrased_claims
-
-from enum import Enum
-
-class MultiNLILabel(Enum):
-    CONTRADICTION = 0
-    NEUTRAL = 1
-    ENTAILMENT = 2
-    
 class EntailmentPredictionModel(ABC):
     @abstractmethod
     def predict(self, org_claim, gen_claim) -> bool:
         pass
+
 
 class TorchEntailmentPredictionModel(EntailmentPredictionModel):
     def __init__(self, model_path: str, model_name: str, device: str):
@@ -66,11 +80,13 @@ class TorchEntailmentPredictionModel(EntailmentPredictionModel):
 
     def predict(self, org_claim, gen_claim) -> bool:
         tokens_sentences_org_gen = self.model.encode(org_claim, gen_claim)
-        logprobs_sentences_org_gen = self.model.predict('mnli', tokens_sentences_org_gen)
+        logprobs_sentences_org_gen = self.model.predict(
+            'mnli', tokens_sentences_org_gen)
         cal_val_mlnli_org_gen = logprobs_sentences_org_gen.argmax(dim=1).item()
 
         tokens_sentences_gen_org = self.model.encode(gen_claim, org_claim)
-        logprobs_sentences_gen_org = self.model.predict('mnli', tokens_sentences_gen_org)
+        logprobs_sentences_gen_org = self.model.predict(
+            'mnli', tokens_sentences_gen_org)
         cal_val_mlnli_gen_org = logprobs_sentences_gen_org.argmax(dim=1).item()
 
         # The raw values are kept here for potential future debugging
@@ -78,14 +94,12 @@ class TorchEntailmentPredictionModel(EntailmentPredictionModel):
 
         # We check if both directions entail each other
         return cal_val_mlnli_org_gen == MultiNLILabel.ENTAILMENT.value and cal_val_mlnli_gen_org == MultiNLILabel.ENTAILMENT.value
-    
+
     @staticmethod
     def _get_label(label_value: int) -> str:
-        labels_multi_nli = {0: 'contradiction', 1 : 'neutral', 2 : 'entailment'}
-        return labels_multi_nli[label_value]    
+        labels_multi_nli = {0: 'contradiction', 1: 'neutral', 2: 'entailment'}
+        return labels_multi_nli[label_value]
 
-from dataclasses import dataclass
-from typing import List
 
 @dataclass
 class ParaphrasedAttack:
@@ -95,43 +109,53 @@ class ParaphrasedAttack:
     list_ners: List[NEREntity] = None
     # list_abbrs: List[Abbreviation] = None
 
-    def attack(self, iteration: int, original_claim: Claim, original_prediction: ClaimPredictions, predict_if_pass_filter: bool=True):
-        paraphrased_texts = self.paraphrase_model.paraphrase(original_claim.claim)
+    def attack(self, iteration: int, original_claim: Claim, original_prediction: ClaimPredictions, predict_if_pass_filter: bool = True):
+        paraphrased_texts = self.paraphrase_model.paraphrase(
+            original_claim.claim)
         paraphrased_claims = []
         for paraphrased_text in paraphrased_texts:
             paraphrased_claim = Claim(original_claim.id, paraphrased_text, original_claim.evidence,
                                       original_claim.cited_docs, original_claim.release)
-            
-            is_ners_preserved = self.filter_and_replace_tech_term_paraphrased_claim(paraphrased_claim.claim, self.list_ners[original_claim.id])
+
+            is_ners_preserved = self.filter_and_replace_tech_term_paraphrased_claim(
+                paraphrased_claim.claim, self.list_ners[original_claim.id])
             # is_abbrs_preserved = self.check_abbr_preservation(paraphrased_claim, self.list_abbrs)
-            nli_label = self.entailment_checker.predict(original_claim.claim, paraphrased_claim.claim)
-            
+            nli_label = self.entailment_checker.predict(
+                original_claim.claim, paraphrased_claim.claim)
+
             paraphrased_prediction = None
-            if predict_if_pass_filter: 
+            if predict_if_pass_filter:
                 if (is_ners_preserved and nli_label):
-                    paraphrased_prediction = self.prediction_model.predict(paraphrased_claim)
+                    paraphrased_prediction = self.prediction_model.predict(
+                        paraphrased_claim)
             else:
-                paraphrased_prediction = self.prediction_model.predict(paraphrased_claim)
-                
+                paraphrased_prediction = self.prediction_model.predict(
+                    paraphrased_claim)
+
             paraphrased_claims.append(ParaphrasedClaim(iteration, original_claim, paraphrased_claim,
-                                                    original_prediction, paraphrased_prediction, 
-                                                    is_ners_preserved, #is_abbrs_preserved,
-                                                    nli_label))                
-                
+                                                       original_prediction, paraphrased_prediction,
+                                                       is_ners_preserved,  # is_abbrs_preserved,
+                                                       nli_label))
+
         return paraphrased_claims
 
     @staticmethod
-    def filter_and_replace_tech_term_paraphrased_claim(claim_paraphrased: str, original_entities: List[Any]) -> bool:
+    def filter_and_replace_tech_term_paraphrased_claim(claim_paraphrased: str, original_entities: List[NEREntity], logger: Logger = None) -> bool:
         for entity in original_entities:
             if entity.__class__.__name__ == 'NEREntity':
                 term = entity.ner_text
             elif entity.__class__.__name__ == 'Abbreviation':
                 term = entity.abbr
             else:
-                raise ValueError(f"Unsupported entity type: {entity.__class__.__name__}")
+                raise ValueError(
+                    f"Unsupported entity type: {entity.__class__.__name__}")
 
             term_formatted = r'\b' + re.escape(term) + r'\b'
             if not re.search(term_formatted, claim_paraphrased, re.IGNORECASE):
+                if logger:
+                    logger.log("FAILED SCIENTIFIC TERM :: Claim : ",
+                               claim_paraphrased)
+                    logger.log("FAILED SCIENTIFIC TERM :: Claim : ", term)
                 return False
         return True
 
@@ -143,32 +167,80 @@ class ParaphrasedAttack:
         return True
 
 
+    def calculate_and_set_claim_states(self, attack: ParaphrasedClaim):
+        if attack.original_claim_state == ClaimState.EMPTY:
+            original_claim_state = self._get_claim_state(attack.original_prediction)
+            attack.original_claim_state = original_claim_state
+                
+        if attack.paraphrased_prediction is not None:
+            paraphrased_claim_state = self._get_claim_state(attack.paraphrased_prediction)
+            attack.paraphrased_claim_state = paraphrased_claim_state
+
+
+    @staticmethod
+    def _get_claim_state(prediction: ClaimPredictions) -> ClaimState:
+        majority_count = ClaimPredictions.get_count_support_refute_nei(prediction)
+        if majority_count['count_support'] > majority_count['count_refute']:
+            return ClaimState.SUPPORT_MAJORITY
+        elif majority_count['count_support'] < majority_count['count_refute']:
+            return ClaimState.REFUTE_MAJORITY
+        elif majority_count['count_support'] == majority_count['count_refute']:
+            return ClaimState.TIE
+        elif majority_count['count_support'] == 0 and majority_count['count_refute'] == 0 and majority_count['count_not_enough_info'] == 0:
+            return ClaimState.EMPTY
+        elif majority_count['count_support'] == 0 and majority_count['count_refute'] == 0:
+            return ClaimState.NOT_ENOUGH_INFO
+        else:
+            raise ValueError("Unexpected majority count values")
+
 
 
 @dataclass
 class ParaphrasedAttackResult:
-    attacks: List[ParaphrasedClaim]
-    iteration: int
-    
-    
-    def get_success_rate(self):
-        # This is a placeholder. Replace this with your own logic for determining
-        # whether an attack was successful.
-        successful_attacks = [attack for attack in self.attacks if attack.get_difference()]
-        return len(successful_attacks) / len(self.attacks)
+    attack: ParaphrasedClaim
+    # Initialize with Unsuccessful
+    attack_status: AttackStatus = AttackStatus.UNSUCCESSFUL
 
-    def save_json(self, filename):
-        with open(filename, 'w') as f:
-            json.dump([attack.__dict__ for attack in self.attacks], f)
+    def determine_attack_status(self):
+        #Apply all your goddamn rules and filer here
+        is_success = (self.attack.is_ners_preserved == 
+                      True) and (self.attack.nli_label == 
+                                 True) and ((self.attack.original_claim_state ==
+                                             ClaimState.SUPPORT_MAJORITY and self.attack.paraphrased_claim_state ==
+                                             ClaimState.REFUTE_MAJORITY) or (self.attack.original_claim_state == 
+                                                                             ClaimState.REFUTE_MAJORITY and self.attack.paraphrased_claim_state == 
+                                                                             ClaimState.SUPPORT_MAJORITY))
 
-    def save_pickle(self, filename):
-        with open(filename, 'wb') as f:
-            pickle.dump(self, f)
+        if is_success:
+            self.attack_status = AttackStatus.SUCCESSFUL
+        else:
+            self.attack_status = AttackStatus.UNSUCCESSFUL
+
+    def print_summary(self):
+        self.determine_attack_status()
+        print(f"Attack Status: {self.attack_status}")
+
+    def to_dict(self):
+        return asdict(self)
 
     @staticmethod
-    def load_pickle(filename):
+    def save_attacks_to_pickle(attacks: List['ParaphrasedAttackResult'], filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(attacks, f)
+
+    @staticmethod
+    def load_attacks_from_pickle(filename):
         with open(filename, 'rb') as f:
             return pickle.load(f)
-        
 
-            
+    @staticmethod
+    def save_attacks_to_json(attacks: List['ParaphrasedAttackResult'], filename):
+        with open(filename, 'w') as f:
+            json.dump([attack.to_dict() for attack in attacks], f)
+
+    @staticmethod
+    def load_attacks_from_json(filename):
+        with open(filename, 'r') as f:
+            attacks_dict_list = json.load(f)
+        return [ParaphrasedAttackResult(ParaphrasedClaim(**attack_dict['attack']),
+                                        AttackStatus[attack_dict['attack_status']]) for attack_dict in attacks_dict_list]
