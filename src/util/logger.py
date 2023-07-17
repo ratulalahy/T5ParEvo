@@ -5,6 +5,9 @@ import neptune.new as neptune
 from typing import Dict
 from pathlib import Path
 from definitions import PROJECT_VARS
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities import rank_zero_only
+
 
 # Define Dataclasses
 @dataclass
@@ -78,6 +81,40 @@ class Logger:
             logging.info(f'{key}: {value}')
 
 
+
+class LightningLogger(LightningLoggerBase):
+    def __init__(self, logger):
+        super().__init__()
+        self._logger = logger
+
+    @property
+    @rank_zero_only
+    def experiment(self):
+        return self._logger
+
+    def log_hyperparams(self, params):
+        self._logger.log('parameters', params)
+
+    def log_metrics(self, metrics, step):
+        for k, v in metrics.items():
+            self._logger.log(k, v)
+
+    def save(self):
+        pass
+
+    @rank_zero_only
+    def finalize(self, status):
+        pass
+
+    @property
+    def name(self):
+        return 'LightningLogger'
+
+    @property
+    def version(self):
+        return '0.0.1'
+    
+    
 # Use LogConfigurator and NeptuneRunner
 if __name__ == "__main__":
 
@@ -94,3 +131,4 @@ if __name__ == "__main__":
     
     logger = Logger(nep_run, log_configurator)
     logger.log("parameters/learning_rate", 0.001)
+    # from src.util.logger import LoggerConfig, LogConfigurator, NeptuneConfig, NeptuneRunner, Logger, LightningLogger

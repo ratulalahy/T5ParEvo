@@ -183,42 +183,62 @@ class ModelPredictorMultivers(ModelPredictor):
         return claim_predictions    
 
 
-
-class ModelPredictorMultiversList(ModelPredictor):
+class ModelPredictorMultiversList(ModelPredictorMultivers):
     def __init__(self, params: PredictionParams, claims: List[Claim]):
-        super().__init__(params)
+        super().__init__(params, claims[0])  # You might need to adapt the initialization to your specific needs
         self.claims = claims
         self.corpus_file = params.corpus_file
         self.dataloader = None
 
-    # def predict(self) -> List[ClaimPredictions]:
-    #     dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
-    #     self.dataloader = dataloader_generator.get_dataloader_by_claims()
-    #     prediction_formatted = self.run()
-    #     claim_predictions_list = []
-    #     for prediction in prediction_formatted:  # assuming there's only one prediction per claim
-    #         claim = next(claim for claim in self.claims if claim.id == prediction['id'])
-    #         claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
-    #         claim_predictions_list.append(claim_predictions)
-    #     return claim_predictions_list
     def predict(self, claims: List[Claim] = None) -> List[ClaimPredictions]:
         if claims is not None:
             self.claims = claims
-        dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
-        self.dataloader = dataloader_generator.get_dataloader_by_claims()
-        prediction_formatted = self.run()
         claim_predictions_list = []
-        for prediction in prediction_formatted:  # assuming there's only one prediction per claim
-            claim = next(claim for claim in self.claims if claim.id == prediction['id'])
-            claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+        for claim in self.claims:
+            self.claim = claim
+            dataloader_generator = ClaimDataLoaderGenerator(self.params, self.claim, self.corpus_file)
+            self.dataloader = dataloader_generator.get_dataloader_by_single_claim()
+            prediction_formatted = self.run()
+            prediction = prediction_formatted[0]  # assuming there's only one prediction per claim
+            claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, self.claim)
             claim_predictions_list.append(claim_predictions)
         return claim_predictions_list
+
+# class ModelPredictorMultiversList(ModelPredictor):
+#     def __init__(self, params: PredictionParams, claims: List[Claim]):
+#         super().__init__(params)
+#         self.claims = claims
+#         self.corpus_file = params.corpus_file
+#         self.dataloader = None
+
+#     # def predict(self) -> List[ClaimPredictions]:
+#     #     dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
+#     #     self.dataloader = dataloader_generator.get_dataloader_by_claims()
+#     #     prediction_formatted = self.run()
+#     #     claim_predictions_list = []
+#     #     for prediction in prediction_formatted:  # assuming there's only one prediction per claim
+#     #         claim = next(claim for claim in self.claims if claim.id == prediction['id'])
+#     #         claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+#     #         claim_predictions_list.append(claim_predictions)
+#     #     return claim_predictions_list
+#     def predict(self, claims: List[Claim] = None) -> List[ClaimPredictions]:
+#         if claims is not None:
+#             self.claims = claims
+#         dataloader_generator = DataLoaderGenerator(self.params, self.claims, self.corpus_file)
+#         self.dataloader = dataloader_generator.get_dataloader_by_claims()
+#         prediction_formatted = self.run()
+#         claim_predictions_list = []
+#         for prediction in prediction_formatted:  # assuming there's only one prediction per claim
+#             claim = next(claim for claim in self.claims if claim.id == prediction['id'])
+#             claim_predictions = ClaimPredictions.from_formatted_prediction(prediction, claim)
+#             claim_predictions_list.append(claim_predictions)
+#         return claim_predictions_list
 
 from verisci.evaluate.lib.data import GoldDataset
 def main_single_claim():
     params = PredictionParams(
         checkpoint_path='/home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/models/target_model/multivers/scifact.ckpt',
-        batch_size=1,
+        batch_size=3,
         device=0,
         num_workers=4,
         no_nei=False,
@@ -267,5 +287,5 @@ def main_single_list():
 
 
 if __name__ == "__main__":
-    main_single_claim()
-    # main_single_list()
+    # main_single_claim()
+    main_single_list()

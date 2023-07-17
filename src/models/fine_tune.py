@@ -11,7 +11,7 @@ from transformers import (AdamW, T5ForConditionalGeneration, T5Tokenizer,
                           get_linear_schedule_with_warmup)
 
 # import ParaphraseDataset, FineTuneHyperParams
-from src.paraphrase.paraphrase_claim import ParaphraseDataset
+# from T5ParEvo.src.paraphrase.paraphrase_claim import ParaphraseDataset
 
 from pandas import DataFrame
 from torch import Tensor
@@ -50,6 +50,7 @@ class LoggingCallback(pl.Callback):
 @dataclass
 class FineTuneHyperParams:
     model_name_path: str
+    tokenizer_name_path: str
     num_train_epochs: int
     df_train: DataFrame
     df_val: DataFrame
@@ -60,8 +61,8 @@ class FineTuneHyperParams:
     weight_decay: float = 0.0
     adam_epsilon: float = 1e-8
     warmup_steps: int = 0
-    train_batch_size: int = 4
-    eval_batch_size: int = 4
+    train_batch_size: int = 2
+    eval_batch_size: int = 2
     gradient_accumulation_steps: int = 16
     n_gpu: int = 1
     early_stop_callback: bool = False
@@ -72,7 +73,8 @@ class FineTuneHyperParams:
 
     def __post_init__(self):
         self.model_name_or_path = self.model_name_path
-        self.tokenizer_name_or_path = self.model_name_path
+        self.tokenizer_name_or_path = self.tokenizer_name_path
+
 
     def get_checkpoint_callback(self):
         return pl.callbacks.ModelCheckpoint(
@@ -88,10 +90,8 @@ class FineTuneHyperParams:
             accumulate_grad_batches=self.gradient_accumulation_steps,
             gpus=self.n_gpu,
             max_epochs=self.num_train_epochs,
-            early_stop_callback=False,
             precision=32,
             gradient_clip_val=self.max_grad_norm,
-            callbacks=[self.get_checkpoint_callback(), LoggingCallback()],
         )
 
     @staticmethod
@@ -105,16 +105,31 @@ class FineTuneHyperParams:
 
 
 class T5FineTuner(pl.LightningModule):
-    def __init__(self, args_fine_tune_ns: FineTuneHyperParams, logger: pl.loggers.base.LightningLoggerBase):
+    def __init__(self, args_fine_tune_ns: FineTuneHyperParams):
         super(T5FineTuner, self).__init__()
 
         self.hparams.update(vars(args_fine_tune_ns))
 
         self.model = T5ForConditionalGeneration.from_pretrained(args_fine_tune_ns.model_name_path)
-        self.tokenizer = T5Tokenizer.from_pretrained(args_fine_tune_ns.model_name_path)
+        self.tokenizer = T5Tokenizer.from_pretrained(args_fine_tune_ns.tokenizer_name_path)
 
-        # Assign the passed logger
-        self.logger = logger
+        # Initialize the datasets
+        self.train_dataset = ParaphraseDataset(tokenizer=self.tokenizer, dataframe=self.hparams.df_train, max_len=self.hparams.max_seq_length)
+        self.val_dataset = ParaphraseDataset(tokenizer=self.tokenizer, dataframe=self.hparams.df_val, max_len=self.hparams.max_seq_length)
+
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(self.train_dataset, batch_size=self.hparams.train_batch_size, drop_last=True, shuffle=True, num_workers=4)
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(self.val_dataset, batch_size=self.hparams.eval_batch_size, num_workers=4)
+
+    # def train_dataloader(self) -> DataLoader:
+    #     return DataLoader(self.train_dataset, batch_size=self.hparams.train_batch_size, drop_last=True, shuffle=True, num_workers=4)
+
+    # def val_dataloader(self) -> DataLoader:
+    #     return DataLoader(self.val_dataset, batch_size=self.hparams.eval_batch_size, num_workers=4)     
+
 
    
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor=None, 
@@ -183,13 +198,13 @@ class T5FineTuner(pl.LightningModule):
         optimizer.zero_grad()
         self.lr_scheduler.step()
 
-    def train_dataloader(self) -> DataLoader:
-        self.train_dataset = ParaphraseDataset(tokenizer=self.tokenizer, target_dataframe=self.hparams.df_train, max_len=self.hparams.max_len)
-        return DataLoader(self.train_dataset, batch_size=self.hparams.train_batch_size, drop_last=True, shuffle=True, num_workers=4)
+    # def train_dataloader(self) -> DataLoader:
+    #     self.train_dataset = ParaphraseDataset(tokenizer=self.tokenizer, target_dataframe=self.hparams.df_train, max_len=self.hparams.max_len)
+    #     return DataLoader(self.train_dataset, batch_size=self.hparams.train_batch_size, drop_last=True, shuffle=True, num_workers=4)
 
-    def val_dataloader(self) -> DataLoader:
-        val_dataset = ParaphraseDataset(tokenizer=self.tokenizer, target_dataframe=self.hparams.df_val, max_len=self.hparams.max_len)
-        return DataLoader(val_dataset, batch_size=self.hparams.eval_batch_size, num_workers=4)        
+    # def val_dataloader(self) -> DataLoader:
+    #     val_dataset = ParaphraseDataset(tokenizer=self.tokenizer, target_dataframe=self.hparams.df_val, max_len=self.hparams.max_len)
+    #     return DataLoader(val_dataset, batch_size=self.hparams.eval_batch_size, num_workers=4)        
     
     
 
@@ -198,6 +213,7 @@ class T5FineTuner(pl.LightningModule):
 class DataFrameConfig:
     source_column: str = "org_claim"
     target_column: str = "gen_claim"
+    
     
 class ParaphraseDataset(Dataset):
     def __init__(self, 

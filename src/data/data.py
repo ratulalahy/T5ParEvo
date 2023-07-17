@@ -423,3 +423,4 @@ class ClaimPredictions:
             elif pred_label == Label.NEI:
                 count_nei += 1
         return {'count_support':count_support, 'count_refute':count_refute, 'count_nei':count_nei}  
+

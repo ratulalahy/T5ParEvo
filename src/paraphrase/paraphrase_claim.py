@@ -37,9 +37,9 @@ class AttackStatus(Enum):
     UNSUCCESSFUL = "Unsuccessful Attack"
 
 
-class TrainingMode(Enum):
-    SUPPORT_MAJORITY = "support_majority"
-    REFUTE_MAJORITY = "refute_majority"
+# class TrainingDirection(Enum):
+#     SUPPORT_MAJORITY = "support_majority" # Support Majority to Refute Majority
+#     REFUTE_MAJORITY = "refute_majority" # Refute Majority to Support Majority
 
 
 @dataclass
@@ -117,13 +117,15 @@ class ParaphrasedAttack:
             paraphrased_claim = Claim(original_claim.id, paraphrased_text, original_claim.evidence,
                                       original_claim.cited_docs, original_claim.release)
 
+            ner_list = self.list_ners.get(original_claim.id, [])
             is_ners_preserved = self.filter_and_replace_tech_term_paraphrased_claim(
-                paraphrased_claim.claim, self.list_ners[original_claim.id])
+                paraphrased_claim.claim, ner_list)
             # is_abbrs_preserved = self.check_abbr_preservation(paraphrased_claim, self.list_abbrs)
             nli_label = self.entailment_checker.predict(
                 original_claim.claim, paraphrased_claim.claim)
 
             paraphrased_prediction = None
+            # No need to predict if the paraphrased claim does not pass the fknfilter
             if predict_if_pass_filter:
                 if (is_ners_preserved and nli_label):
                     paraphrased_prediction = self.prediction_model.predict(
@@ -141,6 +143,9 @@ class ParaphrasedAttack:
 
     @staticmethod
     def filter_and_replace_tech_term_paraphrased_claim(claim_paraphrased: str, original_entities: List[NEREntity], logger: Logger = None) -> bool:
+        
+        if not original_entities:
+            return True
         for entity in original_entities:
             if entity.__class__.__name__ == 'NEREntity':
                 term = entity.ner_text
@@ -199,6 +204,7 @@ class ParaphrasedAttack:
 class ParaphrasedAttackResult:
     attack: ParaphrasedClaim
     # Initialize with Unsuccessful
+    training_direction: ClaimState = ClaimState.EMPTY
     attack_status: AttackStatus = AttackStatus.UNSUCCESSFUL
 
     def determine_attack_status(self):
