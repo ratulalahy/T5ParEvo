@@ -108,3 +108,7 @@ dst-env
 *.pkl
 *.pickle
 *.ckpt
+
+# neptune
+.neptune/
+/async/

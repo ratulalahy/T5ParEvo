@@ -93,6 +93,8 @@ def load_t5_model(checkpoint_path):
 
 def main():
     iteration_counter = 0
+    iteration_start_from = 1
+    df_fine_tuning_dataset = None
     # Configure Logging
     lightning_logger = setup_logging()
     lightning_logger.log_hyperparams(PARAPHRASE_CONFIG_PARAMS)
@@ -171,29 +173,32 @@ def main():
 
     while True:
         # FIRST ATTACK! 
-        all_paraphrased_attacks : List[ParaphrasedClaim] = [] # okay! `all_paraphrased_attacks` not a list of attacks. Actually list of all paraphrased claims with predicts
-        for cur_original_claim_pred in tqdm(all_original_claim_predictions[:], desc="Paraphrasing claims"):
-            paraphrased_attack = paraphrase_attack_model.attack(iteration = iteration_counter, 
-                                                          original_claim= cur_original_claim_pred.gold, 
-                                                          original_prediction = cur_original_claim_pred, 
-                                                          predict_if_pass_filter=False)
-        all_paraphrased_attacks.append(paraphrased_attack)
+        if(iteration_counter > iteration_start_from):
+            all_paraphrased_attacks : List[ParaphrasedClaim] = [] # okay! `all_paraphrased_attacks` not a list of attacks. Actually list of all paraphrased claims with predicts
+            for cur_original_claim_pred in tqdm(all_original_claim_predictions[:], desc="Paraphrasing claims"):
+                paraphrased_attack = paraphrase_attack_model.attack(iteration = iteration_counter, 
+                                                            original_claim= cur_original_claim_pred.gold, 
+                                                            original_prediction = cur_original_claim_pred, 
+                                                            predict_if_pass_filter=False)
+            all_paraphrased_attacks.append(paraphrased_attack)
 
+            # Post processing the attack results. like filtering, majority and so on.
+            all_attack_results : List[ParaphrasedAttackResult] = []
+            for cur_claims_attack in all_paraphrased_attacks:
+                for cur_attack in cur_claims_attack:
+                    paraphrase_attack_model.calculate_and_set_claim_states(cur_attack)
+                    cur_res = ParaphrasedAttackResult(cur_attack)
+                    cur_res.determine_attack_status()
+                    cur_res.training_direction = TRAINING_DIRECTION
+                    all_attack_results.append(cur_res)
+                
         #read pickle file
-        # with open('/home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/notebooks/all_attacks.pkl', 'rb') as f:
-        #     all_attack_results = pickle.load(f) 
-        # for cur_res in all_attack_results:    
-        #     cur_res.determine_attack_status()
-        #     cur_res.training_direction = TRAINING_DIRECTION
-        # Post processing the attack results. like filtering, majority and so on.
-        all_attack_results : List[ParaphrasedAttackResult] = []
-        for cur_claims_attack in all_paraphrased_attacks:
-            for cur_attack in cur_claims_attack:
-                paraphrase_attack_model.calculate_and_set_claim_states(cur_attack)
-                cur_res = ParaphrasedAttackResult(cur_attack)
+        else:
+            with open('/home/qudratealahyratu/research/nlp/fact_checking/my_work/T5ParEvo/notebooks/all_attacks.pkl', 'rb') as f:
+                all_attack_results = pickle.load(f) 
+            for cur_res in all_attack_results:    
                 cur_res.determine_attack_status()
-                cur_res.training_direction = TRAINING_DIRECTION
-                all_attack_results.append(cur_res)
+                cur_res.training_direction = TRAINING_DIRECTION                
 
         # save paraphrased claims with predicts and log
         f_n_all_paraphrased = f"all_paraphrased_{TRAINING_DIRECTION.value}_{iteration_counter}.pkl" 
@@ -214,6 +219,7 @@ def main():
                 unique_ids_attacks.add(cur_atk.attack.original_claim.id)
                 if cur_atk.attack.original_claim_state == TRAINING_DIRECTION:
                     attacks_to_be_used_for_training.append(cur_atk)  
+                    print(cur_atk.training_direction)
                     
         # save paraphrased claims with predicts and log
         f_n_all_attacks = f"all_attacks_{TRAINING_DIRECTION.value}_{iteration_counter}.pkl" 
@@ -232,7 +238,11 @@ def main():
         "org_claim": [cur_atk.attack.original_claim.claim for cur_atk in attacks_to_be_used_for_training],
         "gen_claim": [cur_atk.attack.paraphrased_claim.claim for cur_atk in attacks_to_be_used_for_training]
         }
-        df_fine_tuning_dataset = pd.DataFrame(fine_tuning_data)
+        df_new_finetune = pd.DataFrame(fine_tuning_data)
+        if df_fine_tuning_dataset is None:
+            df_fine_tuning_dataset = df_new_finetune.copy()
+        else:
+            df_fine_tuning_dataset = pd.concat([df_fine_tuning_dataset, df_new_finetune], ignore_index=True)
 
         prep = DatasetPreparation(df_fine_tuning_dataset, SPLIT_SIZE)
         df_tune_train, df_tune_val = prep.split_and_reset_index()
