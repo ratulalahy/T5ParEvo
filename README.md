@@ -1,57 +1,226 @@
-T5ParEvo
-==============================
+# T5ParEvo: Iterative Evolutionary Attack Generator for Scientific Claim Verification
 
-BioMedical sentence paraphrasing by finetuning T5 model
+![License](https://img.shields.io/github/license/ratulalahy/T5ParEvo)
 
-Project Organization
-------------
+## Overview
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
+This repository contains the implementation and supplementary materials for the paper "Analyzing Robustness of Automatic Scientific Claim Verification Tools against Adversarial Rephrasing Attacks". The project focuses on enhancing the robustness of Automatic Scientific Claim Verification (ASCV) tools by generating adversarial rephrasing attacks using the T5-ParEvo model.
+
+## Abstract
+
+The coronavirus pandemic has fostered an explosion of misinformation about the disease and the risk and effectiveness of vaccination. AI tools for Automatic Scientific Claim Verification (ASCV) such as VERISCI can be crucial to defeat misinformation campaigns spreading through social media channels. However, over the past years, many concerns have been raised about the robustness of AI to adversarial attacks, and the field of automatic scientific claim verification is not exempt. The risk is that such ASCV tools may reinforce and legitimize the spread of fake scientific claims rather than refute them.
+
+This paper investigates the problem of generating adversarial attacks for ASCV tools and shows that this problem is far more difficult than the general NLP adversarial attack field. The current NLP adversarial attack generators, when applied to ASCV, often generate modified claims with entirely different meaning from the original. Even when the meaning is preserved, the modification of the generated claim is too simplistic (only a single word is changed), leaving many weaknesses of the ASCV tools undiscovered. We propose T5-ParEvo, an iterative evolutionary attack generator that is able to generate more complex and creative attacks while better preserving the semantics of the original claim. Using detailed quantitative and qualitative analysis, we demonstrate the efficacy of T5-ParEvo in comparison with existing attack generators.
+
+## Repository Contents
+
+- **src/**: Source code for T5-ParEvo implementation.
+- **data/**: Datasets for training and evaluation.
+- **notebooks/**: Jupyter notebooks for analysis and experiments.
+- **results/**: Outputs and results from the experiments, including attack success metrics.
+
+## Requirements
+
+- Python 3.8+
+- TensorFlow 2.4+
+- transformers
+- scikit-learn
+- pandas
+- numpy
+- jupyter
+
+Install the required packages using:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+1. **Clone the repository**:
+    ```bash
+    git clone https://github.com/ratulalahy/T5ParEvo.git
+    cd T5ParEvo
+    ```
+
+2. **Run Jupyter notebooks** for experiments and visualizations:
+    ```bash
+    jupyter notebook notebooks/
+    ```
+
+3. **Train the model** using:
+    ```bash
+    python src/train_model.py --data_path data/train.csv
+    ```
+
+4. **Evaluate the model** on test data:
+    ```bash
+    python src/evaluate_model.py --data_path data/test.csv
+    ```
+
+## Algorithm
+### Schema of T5-ParEvo
+The following schema illustrates the iterative process of the T5-ParEvo model.
+<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_schema.jpg" alt="Schema" width="800">
+
+The T5-ParEvo algorithm iteratively fine-tunes the T5 model to generate adversarial claims. Here is the algorithm:
+
+### T5-ParEvo Algorithm
+
+```pseudo
+function T5_ParEvo(CV, L, h, k)
+    DB = {}
+    initialize T5
+    for i = 1 to k do
+        IS = {(C_orig, C_par) | C_par in T5(C_orig, h), C_orig in L}
+        SS = {(C_orig, C_par) | CV(C_orig) != CV(C_par), (C_orig, C_par) in IS}
+        SCS = {(C_orig, C_par) | SemanticChecker(C_orig, C_par) = True, (C_orig, C_par) in SS}
+        DB = DB ∪ SCS
+        fine-tune T5 with pairs in DB
+    end for
+    return DB
+end function
+```
+
+## Semantic Checker Algorithm
+
+```pseudo
+function SemanticChecker(C_orig, C_par)
+    TT_C_orig = extract_technical_terms(C_orig)
+    TT_C_par = extract_technical_terms(C_par)
+    if TT_C_orig = TT_C_par and entailment(C_orig, C_par) and entailment(C_par, C_orig) then
+        return True
+    end if
+    return False
+end function
+```
+
+### Fine tune iteration
+Below diagram shows a single iteration of Fine-tuning process for our praphraser:
+<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_iteration..jpg" alt="Fine Tune Iteration" width="1000">
+
+## Results
+
+### Evaluation of Fine-tuning Iterations
+The following figure shows the evaluation of T5-ParEvo after fine-tuning iterations, demonstrating the increase in valid adversarial attacks.
+<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_par_evo_total_unique.png" alt="Evaluation over Iteration" width="1000">
 
 
---------
+## Examples of Diverse Attack Claims Generated by T5-ParEvo
+Below are examples of attack claims generated by T5-ParEvo, highlighting various changes such as added words, phrase changes, generalization, and sentence restructuring.
+<table>
+  <tr>
+    <th>Change</th>
+    <th>Original Claim</th>
+    <th>Attack Claim</th>
+  </tr>
+  <tr>
+    <td><strong>Added Words</strong></td>
+    <td>76-85% of people with severe mental disorder receive no treatment in low and middle income countries.</td>
+    <td><mark>76-85 percent</mark> of people with severe mental disorder <mark>will</mark> receive no treatment in low and middle income countries.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Risk-adjusted mortality rates are similar in teaching and non-teaching hospitals.</td>
+    <td><mark>Similar</mark> risk-adjusted mortality rates <mark>in teaching and non-teaching hospitals</mark> are reported.</td>
+  </tr>
+  <tr>
+    <td><strong>Phrase Changes</strong></td>
+    <td>ALDH1 expression is associated with better breast cancer outcomes.</td>
+    <td><mark>The expression of</mark> ALDH1 <mark>is related to</mark> better breast cancer outcomes.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Antimicrobial agents are less effective due to the pressure of antimicrobial usage.</td>
+    <td><mark>Antimicrobials</mark> are less effective due to <mark>pressure from antimicrobial use</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>ART has no effect on the infectiveness of HIV-positive people.</td>
+    <td><mark>ART did not change</mark> the infectiveness of HIV-positive people.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Bariatric surgery has a positive impact on mental health.</td>
+    <td><mark>Bariatric surgery has measurable psychological benefits</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Dexamethasone decreases risk of postoperative bleeding.</td>
+    <td><mark>Dexamethasone decreases postoperative bleeding risk</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>The risk of female prisoners harming themselves is ten times that of male prisoners.</td>
+    <td><mark>The risk of female prisoners harming themselves is 10 times greater than male prisoners</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Stroke patients with prior use of direct oral anticoagulants have a lower risk of in-hospital mortality than stroke patients with prior use of warfarin.</td>
+    <td><mark>Stroke patients with prior use of direct oral anticoagulants have a lower mortality rate in-hospital than stroke victims who had used warfarin previously</mark>.</td>
+  </tr>
+  <tr>
+    <td><strong>Generalization</strong></td>
+    <td>Antimicrobial agents are more effective due to the pressure of antimicrobial usage.</td>
+    <td><mark>Antimicrobial agents are due to their pressure more effective</mark>.</td>
+  </tr>
+  <tr>
+    <td><strong>Sentence Restructuring</strong></td>
+    <td>76-85% of people with severe mental disorder receive no treatment in low and middle income countries.</td>
+    <td>76-85% of people with severe mental disorder in low and middle income countries receive no treatment.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Anthrax spores can be disposed of easily after they are dispersed.</td>
+    <td><mark>Anthrax spores can be easily disposed of once they are dispersed</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Gene expression does not vary appreciably across genetically identical cells.</td>
+    <td><mark>Gene expression does not differ across genetically identical cells appreciably</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Incidence of 10/66 dementia is lower than the incidence of DSM-IV dementia.</td>
+    <td><mark>The prevalence of DSM-IV dementia is higher than the incidence of 10/66 dementia</mark>.</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Incidence of sepsis has fallen substantially from 2009 to 2014.</td>
+    <td><mark>From 2009 to 2014 the prevalence of sepsis has fallen considerably</mark>.</td>
+  </tr>
+</table>
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+## Run Log on Neptune
+[app.neptune.ai/ratulalahy/scifact-paraphrase-T5-evo/](https://app.neptune.ai/ratulalahy/scifact-paraphrase-T5-evo/runs/)
+
+
+## Citation
+
+If you use this code, please cite the paper:
+
+```
+@article{10.1145/3663481,
+author = {Layne, Janet and Ratul, Qudrat E Alahy and Serra, Edoardo and Jajodia, Sushil},
+title = {Analyzing Robustness of Automatic Scientific Claim Verification Tools against Adversarial Rephrasing Attacks},
+year = {2024},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+issn = {2157-6904},
+url = {https://doi.org/10.1145/3663481},
+doi = {10.1145/3663481},
+abstract = {The coronavirus pandemic has fostered an explosion of misinformation about the disease, including the risk and effectiveness of vaccination. AI tools for automatic Scientific Claim Verification (SCV) can be crucial to defeat misinformation campaigns spreading through social media channels. However, over the past years, many concerns have been raised about the robustness of AI to adversarial attacks, and the field of automatic scientific claim verification is not exempt. The risk is that such SCV tools may reinforce and legitimize the spread of fake scientific claims rather than refute them. This paper investigates the problem of generating adversarial attacks for SCV tools and shows that it is far more difficult than the generic NLP adversarial attack problem. The current NLP adversarial attack generators, when applied to SCV, often generate modified claims with entirely different meaning from the original. Even when the meaning is preserved, the modification of the generated claim is too simplistic (only a single word is changed), leaving many weaknesses of the SCV tools undiscovered. We propose T5-ParEvo, an iterative evolutionary attack generator, that is able to generate more complex and creative attacks while better preserving the semantics of the original claim. Using detailed quantitative and qualitative analysis, we demonstrate the efficacy of T5-ParEvo in comparison with existing attack generators.},
+note = {Just Accepted},
+journal = {ACM Trans. Intell. Syst. Technol.},
+month = {may},
+keywords = {Neural Networks, Adversarial Attack, Scientific Claim Verification}
+}
+```
+
+## License
+
+This project is licensed under the MIT License.
+
+## Acknowledgments
+
+Thanks to all contributors and reviewers for their valuable feedback and support.
