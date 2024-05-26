@@ -6,6 +6,8 @@
 
 This repository contains the implementation and supplementary materials for the paper "Analyzing Robustness of Automatic Scientific Claim Verification Tools against Adversarial Rephrasing Attacks". The project focuses on enhancing the robustness of Automatic Scientific Claim Verification (ASCV) tools by generating adversarial rephrasing attacks using the T5-ParEvo model.
 
+<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_schema.jpg" alt="Schema" width="800">
+
 ## Abstract
 
 The coronavirus pandemic has fostered an explosion of misinformation about the disease and the risk and effectiveness of vaccination. AI tools for Automatic Scientific Claim Verification (ASCV) such as VERISCI can be crucial to defeat misinformation campaigns spreading through social media channels. However, over the past years, many concerns have been raised about the robustness of AI to adversarial attacks, and the field of automatic scientific claim verification is not exempt. The risk is that such ASCV tools may reinforce and legitimize the spread of fake scientific claims rather than refute them.
@@ -59,10 +61,6 @@ pip install -r requirements.txt
     ```
 
 ## Algorithm
-### Schema of T5-ParEvo
-The following schema illustrates the iterative process of the T5-ParEvo model.
-<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_schema.jpg" alt="Schema" width="800">
-
 The T5-ParEvo algorithm iteratively fine-tunes the T5 model to generate adversarial claims. Here is the algorithm:
 
 ### T5-ParEvo Algorithm
