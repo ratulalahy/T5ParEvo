@@ -61,6 +61,8 @@ pip install -r requirements.txt
     ```
 
 ## Algorithm
+<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_iteration..jpg" alt="Fine Tune Iteration" width="1000">
+
 The T5-ParEvo algorithm iteratively fine-tunes the T5 model to generate adversarial claims. Here is the algorithm:
 
 ### T5-ParEvo Algorithm
@@ -92,10 +94,6 @@ function SemanticChecker(C_orig, C_par)
     return False
 end function
 ```
-
-### Fine tune iteration
-Below diagram shows a single iteration of Fine-tuning process for our praphraser:
-<img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_iteration..jpg" alt="Fine Tune Iteration" width="1000">
 
 ## Results
 
