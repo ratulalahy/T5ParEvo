@@ -4,7 +4,7 @@
 
 ## Overview
 
-This repository contains the implementation and supplementary materials for the paper "Analyzing Robustness of Automatic Scientific Claim Verification Tools against Adversarial Rephrasing Attacks". The project focuses on enhancing the robustness of Automatic Scientific Claim Verification (ASCV) tools by generating adversarial rephrasing attacks using the T5-ParEvo model.
+This repository contains the implementation and supplementary materials for the paper "[Analyzing Robustness of Automatic Scientific Claim Verification Tools against Adversarial Rephrasing Attacks](https://dl.acm.org/doi/10.1145/3663481)". The project focuses on enhancing the robustness of Automatic Scientific Claim Verification (ASCV) tools by generating adversarial rephrasing attacks using the T5-ParEvo model.
 
 <img src="https://github.com/ratulalahy/T5ParEvo/blob/master/reports/figures/t5_schema.jpg" alt="Schema" width="800">
 
